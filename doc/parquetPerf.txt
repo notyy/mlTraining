@@ -1,0 +1,43 @@
+test performance of parquet partition and columnar selection 
+
+XXXX KB is **input** field in spark web ui executors tab. the number is accumulated
+
+1343.6 KB
+val dfNoPartition = sqlContext.read.parquet("data_parquet”)
+dfNoPartition.count   5.1kb
+1348.7  
+dfNoPartition.filter($"sex" === "male").count   13.1 kb
+1361.8 KB
+val dfPartion = sqlContext.read.parquet("data_partition_parquet”)
+dfPartion.count    10 kb
+1371.7 KB
+dfPartion.filter($"sex" === "male").count      4.9 kb
+1376.6
+dfPartion.filter($"sex" === "female").count   5 kb
+1381.6 KB
+dfNoPartition.collect    34.1 kb
+1415.7 KB
+dfNoPartition.filter($"sex" === "male").collect    34.2 kb
+1449.9 KB
+dfPartion.collect     43.8 kb
+1493.7 KB
+dfPartion.filter($"sex" === "male").collect   23.1 kb
+1516.8 KB
+dfPartion.filter($"sex" === "female").collect  20.6 kb
+1537.4 KB
+dfNoPartition.select("sex").collect    13.1 kb
+1550.5 KB
+dfNoPartition.select("survived").collect  13.1 kb
+1563.6 KB
+dfPartion.select("sex").collect  9.9 kb
+1573.5 KB 9.9 kb
+dfNoPartition.select("sex").collect 13.2 kb
+1586.7 KB
+dfPartion.select("sex").collect 9.9 kb
+1596.6 KB
+—————
+1619.6 KB
+dfNoPartition.select("survived").collect.length 13.1kb
+1632.7 KB   
+dfPartion.select("survived").collect.length 25.9 kb
+1658.6 KB
