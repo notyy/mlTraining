@@ -26,6 +26,7 @@ libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-network-common" % "1.4.0",
   "org.apache.spark" %% "spark-core" % "1.4.0" % "provided,test",
   "org.apache.spark" %% "spark-sql" % "1.4.0" % "provided,test",
+  "org.apache.spark" %% "spark-mllib" % "1.4.0" % "provided,test",
   "org.scalanlp" %% "breeze" % "0.9",
   "org.scalanlp" %% "breeze-viz" % "0.8"
 )
