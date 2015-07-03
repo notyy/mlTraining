@@ -14,10 +14,11 @@ class TitanicSpec extends FunSpec with ShouldMatchers with SparkContextHelper wi
         checkNA(rdd.map(_.split(",", -1))).toSet shouldBe Set(2, 1)
       }
     }
-    it("contains functions to turn source csv to data frame"){
+
+    it("can check NA values of test.csv"){
       withLocalSparkContext("titanic") { sc =>
-        val rdd = sc.textFile("data/train.csv")
-//        checkNA(rdd.map(_.split(",", -1))).toSet shouldBe Set(2, 1)
+        val data = sc.textFile("data/test.csv")
+        println(checkNA(data.map(_.split(",(?=([^\"]*\"[^\"]*\")*[^\"]*$)", -1))).toSet)
       }
     }
 
@@ -25,7 +26,7 @@ class TitanicSpec extends FunSpec with ShouldMatchers with SparkContextHelper wi
       withLocalSparkContext("titanic") { sc =>
         val sqlContext = new SQLContext(sc)
         val df = sqlContext.read.parquet("data_parquet")
-        val labeledPoints = dataFrame2LabeledPoints(df)
+        val labeledPoints = trainDF2LabeledPoints(df)
         labeledPoints.count() shouldBe df.count()
       }
     }
@@ -34,9 +35,24 @@ class TitanicSpec extends FunSpec with ShouldMatchers with SparkContextHelper wi
       withLocalSparkContext("titanic") { sc =>
         val sqlContext = new SQLContext(sc)
         val df = sqlContext.read.parquet("data_parquet")
-        val labeledPoints = dataFrame2LabeledPoints(df)
+        val labeledPoints = trainDF2LabeledPoints(df)
         val model = train(labeledPoints)
         println(model.toDebugString)
+      }
+    }
+
+    ignore("can predict test data by the calculated model"){
+      withLocalSparkContext("titanic") { sc =>
+        val sqlContext = new SQLContext(sc)
+        val df = sqlContext.read.parquet("data_parquet")
+        val labeledPoints = trainDF2LabeledPoints(df)
+        val model = train(labeledPoints)
+        println(model.toDebugString)
+        val testDF = test2DataFrame(sc, "data/test.csv")
+        val testVectors = testDF2Vectors(testDF)
+        testVectors.map{ case (pid,features) =>
+          s"$pid,${model.predict(features).toInt}"
+        }.coalesce(1).saveAsTextFile("out")
       }
     }
   }
