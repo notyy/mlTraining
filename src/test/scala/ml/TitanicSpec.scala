@@ -7,6 +7,8 @@ import sample.SparkContextHelper
 import Titanic._
 
 class TitanicSpec extends FunSpec with ShouldMatchers with SparkContextHelper with StrictLogging {
+  val fieldIndexNameDic: Map[Int, PassengerID] = Map(0 -> "pClass", 1 -> "sex", 2 -> "age", 3 -> "sib", 4 -> "parch")
+
   describe("Titanic module") {
     it("contains function that can detect na values from rdd") {
       withLocalSparkContext("titanic") { sc =>
@@ -37,7 +39,7 @@ class TitanicSpec extends FunSpec with ShouldMatchers with SparkContextHelper wi
         val df = sqlContext.read.parquet("data_parquet")
         val labeledPoints = trainDF2LabeledPoints(df)
         val model = train(labeledPoints)
-        println(model.toDebugString)
+        println(prettify(fieldIndexNameDic)(model.toDebugString))
       }
     }
 
@@ -54,6 +56,16 @@ class TitanicSpec extends FunSpec with ShouldMatchers with SparkContextHelper wi
           s"$pid,${model.predict(features).toInt}"
         }.coalesce(1).saveAsTextFile("out")
       }
+    }
+
+    it("can prettify decision tree debug string"){
+      val s =
+        """If (feature 1 in {1.0})
+          |   If (feature 0 in {0.0})"""
+      val rs = prettify(fieldIndexNameDic)(s)
+      rs shouldBe
+        """If (sex in {1.0})
+          |   If (pClass in {0.0})"""
     }
   }
 }

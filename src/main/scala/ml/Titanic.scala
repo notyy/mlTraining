@@ -51,7 +51,7 @@ object Titanic extends StrictLogging {
     df.map{
       case Row(id: PassengerID,pClass:Int,name: String,sex: String,age: Double,
       sibSp:Int,parch:Int,tickNo: String,fare:Double,cabin:String,emarkPort:String) =>
-        (id,Vectors.dense(pClass.toDouble,if(sex == "female") 0.0 else 1.0, age,sibSp.toDouble,parch.toDouble,fare))
+        (id,toVector(pClass,sex,age,sibSp,parch))
     }
   }
 
@@ -59,9 +59,20 @@ object Titanic extends StrictLogging {
     df.map{
       case Row(id,survived:Int,pClass:Int,name: String,sex: String,age: Double,
       sibSp:Int,parch:Int,tickNo: String,fare:Double,cabin:String,emarkPort:String) =>
-        LabeledPoint(survived,
-          Vectors.dense(pClass.toDouble,if(sex == "female") 0.0 else 1.0, age,sibSp.toDouble,parch.toDouble,fare))
+        LabeledPoint(survived,toVector(pClass,sex, age,sibSp,parch))
     }
+  }
+
+  def toVector: (Int,String,Double,Int,Int) => Vector = (pClass, sex,age,sibSp,parch) =>{
+    Vectors.dense(pClass.toDouble - 1.0,if(sex == "female") 0.0 else 1.0,
+      if(age < 0 ) 6
+      else if(age < 10 && age >= 0) 0
+      else if(age < 16 && age >= 10) 1
+      else if(age < 24 && age >= 16) 2
+      else if(age < 36 && age >= 24) 3
+      else if(age < 60 && age >= 36) 4
+      else 5
+      ,sibSp.toDouble,parch.toDouble)
   }
 
   def train: RDD[LabeledPoint] => DecisionTreeModel = data => {
@@ -72,9 +83,9 @@ object Titanic extends StrictLogging {
     // Train a DecisionTree model.
     //  Empty categoricalFeaturesInfo indicates all features are continuous.
     val numClasses = 2
-    val categoricalFeaturesInfo = Map[Int, Int]()
+    val categoricalFeaturesInfo = Map[Int, Int](0 -> 3, 1 -> 2, 2 -> 7)
     val impurity = "gini"
-    val maxDepth = 2
+    val maxDepth = 4
     val maxBins = 32
 
     val model = DecisionTree.trainClassifier(trainingData, numClasses, categoricalFeaturesInfo,
@@ -109,5 +120,11 @@ object Titanic extends StrictLogging {
       }
     }.filter{case (k,vs) => k}.values.reduce(_ ++ _).toArray
 //    (0 to count - 1).map(i => rdd.map(_(i)).filter(_.isEmpty).count())
+  }
+
+  def prettify: Map[Int,String] => String => String = dic => debugString => {
+    dic.foldLeft(debugString){ case (ds,(fieldIndex, name)) =>
+      ds.replaceAll(s"feature $fieldIndex", name)
+    }
   }
 }
